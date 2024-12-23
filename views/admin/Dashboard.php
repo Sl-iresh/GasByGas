@@ -125,7 +125,44 @@ include_once '../../includes/header.php';
 
 
 
-	
+		<section id="order-gas" class="mt-5">
+			<h2 class="text-center mb-4">Order Gas</h2>
+			<div class="row g-4 justify-content-center">
+				<!-- Cylinder Type 1 -->
+				<div class="col-md-4 col-sm-6">
+					<div class="card gas-card">
+						<div class="card-body text-center">
+							<img src="../../assets/images/large-cylinder.png" alt="Large Cylinder" class="img-fluid gas-img mb-3">
+							<h5 class="card-title">Large Cylinder</h5>
+							<p class="card-text">15kg - Perfect for home use</p>
+							<button class="btn btn-primary order-btn">Order Now</button>
+						</div>
+					</div>
+				</div>
+				<!-- Cylinder Type 2 -->
+				<div class="col-md-4 col-sm-6">
+					<div class="card gas-card">
+						<div class="card-body text-center">
+							<img src="../../assets/images/medium-cylinder.png" alt="Medium Cylinder" class="img-fluid gas-img mb-3">
+							<h5 class="card-title">Medium Cylinder</h5>
+							<p class="card-text">12kg - Ideal for small families</p>
+							<button class="btn btn-primary order-btn">Order Now</button>
+						</div>
+					</div>
+				</div>
+				<!-- Cylinder Type 3 -->
+				<div class="col-md-4 col-sm-6">
+					<div class="card gas-card">
+						<div class="card-body text-center">
+							<img src="../../assets/images/small-cylinder.png" alt="Small Cylinder" class="img-fluid gas-img mb-3">
+							<h5 class="card-title">Small Cylinder</h5>
+							<p class="card-text">5kg - Easy to carry</p>
+							<button class="btn btn-primary order-btn">Order Now</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
 	</div>
 
 </main>
