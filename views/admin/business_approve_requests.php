@@ -5,6 +5,90 @@ include_once '../../includes/header.php';
 $db = new Database();
 $conn = $db->connect();
 
+// Get all pending gas requests using a prepared statement
+
+
+
+
+
+
+
+
+
+
+
+// $stmt = $conn->prepare("SELECT *
+// FROM outlet_gas_requests gr
+// JOIN users u ON gr.user_id = u.user_id
+// WHERE status != 'pending' Oneedle: RDER BY id DESC ");
+// $stmt->execute();
+// $all_requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+
+
+
+$stmt = $conn->prepare("SELECT *
+FROM business_gas_requests gr
+JOIN users u ON gr.user_id = u.user_id
+WHERE status = 'pending' OR status = 'approved' ");
+$stmt->execute();
+$requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$stmt = $conn->prepare("SELECT * FROM business_gas_requests gr JOIN users u ON gr.user_id = u.user_id WHERE status != 'pending' ORDER BY id DESC ");
+$stmt->execute();
+$all_requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+
+
+
+
+
+
+
+
+
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $request_id = $_POST['request_id'];
+    $status = $_POST['status'];
+
+    // Validate the status value
+    if (!in_array($status, ['approved', 'rejected'])) {
+        die("Invalid status value.");
+    }
+
+    // Fetch the request details securely
+    $stmt = $conn->prepare("SELECT * FROM business_gas_requests WHERE id = :id");
+    $stmt->bindParam(':id', $request_id, PDO::PARAM_INT);
+    $stmt->execute();
+    $request = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$request) {
+        die("Request not found.");
+    }
+
+
+
+
+    if ($status == 'approved') {
+
+        // Approve the request
+        $stmt = $conn->prepare("UPDATE business_gas_requests SET status = 'approved' WHERE id = :id");
+        $stmt->bindParam(':id', $request_id, PDO::PARAM_INT);
+        $stmt->execute();
+    } else {
+        // Reject the request if not approved
+        $stmt = $conn->prepare("UPDATE outlet_gas_requests SET status = 'rejected' WHERE id = :id");
+        $stmt->bindParam(':id', $request_id, PDO::PARAM_INT);
+        $stmt->execute();
+    }
+
+    // Redirect to avoid resubmission
+    header('Location: ' . $_SERVER['PHP_SELF']);
+    exit();
+}
 ?>
 
 <style>
@@ -203,6 +287,42 @@ $conn = $db->connect();
 
 <?php include_once '../../includes/footer.php'; ?>
 
+<script>
+    // DataTable Initialization
+    $(document).ready(function() {
+        $('#pendingRequestsTable').DataTable();
 
+        // Set request ID in reschedule modal
+        $('#rescheduleModal').on('show.bs.modal', function(event) {
+            var button = $(event.relatedTarget); // Button that triggered the modal
+            var requestId = button.data('id'); // Extract request ID
+            var modal = $(this);
+            modal.find('#rescheduleRequestId').val(requestId);
+        });
+
+        // Handle rescheduling form submission
+        $('#rescheduleForm').submit(function(e) {
+            e.preventDefault();
+            var requestId = $('#rescheduleRequestId').val();
+            var newDate = $('#newDate').val();
+            // Send AJAX request to update the date (you can add server-side processing here)
+            $.ajax({
+                url: '../../controllers/reschedule_business_request.php',
+                method: 'POST',
+                data: {
+                    request_id: requestId,
+                    new_date: newDate
+                },
+                success: function(response) {
+                    alert('Request rescheduled successfully.');
+                    location.reload(); // Reload the page to reflect changes
+                },
+                error: function() {
+                    alert('Error rescheduling request.');
+                }
+            });
+        });
+    });
+</script>
 
 <?php include_once '../../includes/end.php'; ?>
