@@ -23,6 +23,31 @@ require_once  __DIR__ . '\..\config\config.php';
 </head>
 
 
+<style>
+	html,
+	body {
+		height: 100%;
+		margin: 0;
+		display: flex;
+		flex-direction: column;
+	}
+
+	body {
+		display: flex;
+		flex-direction: column;
+	}
+
+	main {
+		flex: 1;
+		/* Pushes the footer to the bottom */
+	}
+
+	footer {
+		background-color: rgba(0, 0, 0, 0.05);
+		padding: 1rem;
+		text-align: center;
+	}
+</style>
 
 <body>
 	<!--content start-->
