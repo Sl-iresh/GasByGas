@@ -11,7 +11,20 @@ if (!isset($_SESSION['user']) || $_SESSION['user']['role'] != 'manager') {
 }
 
 
+$db = new Database();
+$conn = $db->connect();
 
+// Total Orders
+$totalOrdersQuery = $conn->query("SELECT COUNT(*) as total FROM gas_requests");
+$totalOrders = $totalOrdersQuery->fetch(PDO::FETCH_ASSOC)['total'];
+
+// Pending Orders
+$pendingOrdersQuery = $conn->query("SELECT COUNT(*) as pending FROM gas_requests WHERE status = 'pending'");
+$pendingOrders = $pendingOrdersQuery->fetch(PDO::FETCH_ASSOC)['pending'];
+
+// Today's Orders
+$todayOrdersQuery = $conn->query("SELECT COUNT(*) as today FROM gas_requests WHERE DATE(requestDate) = CURDATE()");
+$todayOrders = $todayOrdersQuery->fetch(PDO::FETCH_ASSOC)['today'];
 
 ?>
 <style>
