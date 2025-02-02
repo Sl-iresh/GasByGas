@@ -10,7 +10,49 @@ if (!isset($_SESSION['user']) || $_SESSION['user']['role'] != 'manager') {
     exit();
 }
 
+$user_id = $_SESSION['user']['user_id'];
 
+// Fetch the outlet ID associated with the logged-in manager
+$query = "SELECT id FROM outlets WHERE manager_id = :user_id";
+$stmt = $conn->prepare($query);
+$stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
+$stmt->execute();
+$outlet = $stmt->fetch(PDO::FETCH_ASSOC);
+
+
+if (!$outlet) {
+    die("No outlet assigned to this manager.");
+}
+
+$outlet_id = $outlet['id'];
+
+$success = $error = "";
+// Handling form submission securely
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $outlet_id = $_POST['outlet_id'];
+    $request_date = $_POST['request_date'];
+
+    
+    $gas_data = [
+        'LPG' => isset($_POST['LPG']) ? (int) $_POST['LPG'] : 0,
+        'Propane' => isset($_POST['Propane']) ? (int) $_POST['Propane'] : 0,
+        'Industrial' => isset($_POST['Industrial']) ? (int) $_POST['Industrial'] : 0
+    ];
+    $request_data = json_encode($gas_data);
+
+    // Prepared statement
+    $query = "INSERT INTO outlet_gas_requests (outlet_id, request_data,request_date) VALUES (:outlet_id, :request_data, :request_date)";
+    $stmt = $conn->prepare($query);
+    $stmt->bindParam(':outlet_id', $outlet_id, PDO::PARAM_INT);
+    $stmt->bindParam(':request_data', $request_data, PDO::PARAM_STR);
+    $stmt->bindParam(':request_date', $request_date, PDO::PARAM_STR);
+
+    if ($stmt->execute()) {
+        $success = "Gas request submitted successfully!";
+    } else {
+        $error = "Failed to submit request.";
+    }
+}
 
 
 ?>
