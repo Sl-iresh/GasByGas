@@ -10,7 +10,24 @@ if (!isset($_SESSION['user']) || $_SESSION['user']['role'] != 'manager') {
     exit();
 }
 
+$success = $error = "";
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $token = $_POST['token'];
 
+    // Extract the numeric part of the token
+    $request_id = intval(str_replace('ORD', '', $token));
+
+    $query = "SELECT gr.id,gr.tolerance_end_date , gr.gas_type, gr.pickup_date, gr.status, gr.qty, u.name, u.nic_or_registration_number 
+              FROM gas_requests gr
+              JOIN users u ON gr.user_id = u.user_id
+              WHERE gr.id = :request_id";
+
+    $stmt = $conn->prepare($query);
+    $stmt->bindParam(":request_id", $request_id, PDO::PARAM_INT);
+    $stmt->execute();
+
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+}
 ?>
 
 <header>
