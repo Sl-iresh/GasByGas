@@ -14,7 +14,54 @@ $user_id = $_SESSION['user_id'];
 $db = new Database();
 $conn = $db->connect();
 
+// Handle cancel order request
+if (isset($_POST['cancel_order'])) {
+    $order_id = $_POST['order_id'];
 
+    // Fetch order details before updating
+    $fetch_order_query = "SELECT request_data	 FROM business_gas_requests WHERE id = ? ";
+    $stmt = $conn->prepare($fetch_order_query);
+    $stmt->execute([$order_id]);
+    $order = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($order) {
+
+
+        // Update order status to 'canceled'
+        $cancel_query = "UPDATE business_gas_requests SET status = 'canceled' WHERE id = ? ";
+        $stmt = $conn->prepare($cancel_query);
+        $stmt->execute([$order_id]);
+
+        // // Retrieve current stock for the outlet
+        // $stock_query = "SELECT stock FROM gas_stock WHERE outlet_id = ?";
+        // $stmt = $conn->prepare($stock_query);
+        // $stmt->execute([$outlet_id]);
+        // $stock_data = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        // if ($stock_data) {
+        //     // Decode JSON stock data
+        //     $stock = json_decode($stock_data['stock'], true);
+
+        //     // Increase stock for the canceled gas type
+        //     if (isset($stock[$gas_type])) {
+        //         $stock[$gas_type] += $qty;
+        //     } else {
+        //         $stock[$gas_type] = $qty; // If gas type doesn't exist, initialize it
+        //     }
+
+        //     // Update stock in database
+        //     $update_stock_query = "UPDATE gas_stock SET stock = ? WHERE outlet_id = ?";
+        //     $stmt = $conn->prepare($update_stock_query);
+        //     $stmt->execute([json_encode($stock), $outlet_id]);
+        // }
+
+        $_SESSION['success_message'] = "Order #00$order_id has been successfully canceled.";
+    }
+
+    // Redirect after cancelling
+    header('Location: ' . $_SERVER['PHP_SELF']);
+    exit;
+}
 
 // Fetch gas requests for the logged-in user
 $query = "SELECT * FROM business_gas_requests WHERE user_id = ? ORDER BY pickup_date DESC";
