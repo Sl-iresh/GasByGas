@@ -1,5 +1,5 @@
 <?php
-$title="Signin | Lpgas ";
+$title="Sign Up | GasByGas ";
 include_once '../includes/header.php';?>
 
 <script>
@@ -79,7 +79,7 @@ include_once '../includes/header.php';?>
 									<div class="d-flex flex-row align-items-center mb-4">
 										<i class="fas fa-user-group fa-lg me-3 fa-fw"></i>
 										<div data-mdb-input-init class="form-outline flex-fill mb-0">
-											<select class="form-select" id="selectCustomerType"  aria-label="Default select example" required  onchange="selectCustomerType(this.value)"  name="customer_type">
+											<select class="form-select" id="selectCustomerType"  aria-label="Default select example" required  onchange="selectCustomerType(this.value)"  name="role">
 												<option selected value="individual">Individual</option>
 												<option value="business">Business</option>
 											</select>
@@ -251,3 +251,4 @@ function checkExists(field, value) {
 
 
   </script>
+  <?php include_once '../includes/end.php';?>
