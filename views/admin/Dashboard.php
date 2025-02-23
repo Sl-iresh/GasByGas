@@ -3,6 +3,52 @@ $title = "Dashboard | GasbyGas ";
 $page = "Dashboard";
 
 include_once '../../includes/header.php';
+
+
+
+$db = new Database();
+$conn = $db->connect();
+
+
+
+// Handle form submissions
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['update_limits'])) {
+        // Update purchase limits
+        $individual_limit = (int)$_POST['individual_limit'];
+        $business_limit = (int)$_POST['business_limit'];
+        
+        $stmt = $conn->prepare("UPDATE order_limits SET order_limit = ? WHERE user_type = ?");
+        $stmt->execute([$individual_limit, 'individual']);
+        $stmt->execute([$business_limit, 'business']);
+    } elseif (isset($_POST['update_prices'])) {
+        // Update gas prices
+        foreach ($_POST['prices'] as $gas_type => $prices) {
+            $stmt = $conn->prepare("UPDATE gas_prices 
+                                   SET cost_price = ?, selling_price = ?
+                                   WHERE gas_type = ?");
+            $stmt->execute([
+                $prices['cost'],
+                $prices['selling'],
+                $gas_type
+            ]);
+        }
+    }
+}
+
+$limits_stmt = $conn->query("SELECT * FROM order_limits");
+$raw_limits = $limits_stmt->fetchAll(PDO::FETCH_UNIQUE);
+
+$limits = [];
+foreach ($raw_limits as $id => $row) {
+    $limits[$row['user_type']] = $row;
+}
+
+$prices_stmt = $conn->query("SELECT * FROM gas_prices");
+$gas_prices = [];
+while ($row = $prices_stmt->fetch(PDO::FETCH_ASSOC)) {
+    $gas_prices[$row['gas_type']] = $row;
+}
 ?>
 <style>
 	body {
@@ -126,47 +172,85 @@ include_once '../../includes/header.php';
 
 
 		<section id="order-gas" class="mt-5">
-			<h2 class="text-center mb-4">Order Gas</h2>
-			<div class="row g-4 justify-content-center">
-				<!-- Cylinder Type 1 -->
-				<div class="col-md-4 col-sm-6">
-					<div class="card gas-card">
-						<div class="card-body text-center">
-							<img src="../../assets/images/large-cylinder.png" alt="Large Cylinder" class="img-fluid gas-img mb-3">
-							<h5 class="card-title">Large Cylinder</h5>
-							<p class="card-text">15kg - Perfect for home use</p>
-							<button class="btn btn-primary order-btn">Order Now</button>
-						</div>
+		<h2 class="mb-4">Admin Dashboard</h2>
+
+<!-- Purchase Limits Section -->
+<div class="card mb-4">
+	<div class="card-header bg-primary text-white">
+		<h4>Purchase Limits Management</h4>
+	</div>
+	<div class="card-body">
+		<form method="POST">
+			<div class="row">
+				<div class="col-md-6">
+					<div class="mb-3">
+						<label class="form-label">Individual User Limit</label>
+						<input type="number" class="form-control" 
+							   name="individual_limit" 
+							   value="<?= $limits['individual']['order_limit'] ?? 2 ?>" 
+							   min="1" required>
 					</div>
 				</div>
-				<!-- Cylinder Type 2 -->
-				<div class="col-md-4 col-sm-6">
-					<div class="card gas-card">
-						<div class="card-body text-center">
-							<img src="../../assets/images/medium-cylinder.png" alt="Medium Cylinder" class="img-fluid gas-img mb-3">
-							<h5 class="card-title">Medium Cylinder</h5>
-							<p class="card-text">12kg - Ideal for small families</p>
-							<button class="btn btn-primary order-btn">Order Now</button>
-						</div>
-					</div>
-				</div>
-				<!-- Cylinder Type 3 -->
-				<div class="col-md-4 col-sm-6">
-					<div class="card gas-card">
-						<div class="card-body text-center">
-							<img src="../../assets/images/small-cylinder.png" alt="Small Cylinder" class="img-fluid gas-img mb-3">
-							<h5 class="card-title">Small Cylinder</h5>
-							<p class="card-text">5kg - Easy to carry</p>
-							<button class="btn btn-primary order-btn">Order Now</button>
-						</div>
+				<div class="col-md-6">
+					<div class="mb-3">
+						<label class="form-label">Business User Limit</label>
+						<input type="number" class="form-control" 
+							   name="business_limit" 
+							   value="<?= $limits['business']['order_limit'] ?? 10 ?>" 
+							   min="1" required>
 					</div>
 				</div>
 			</div>
+			<button type="submit" name="update_limits" class="btn btn-primary">
+				Update Limits
+			</button>
+		</form>
+	</div>
+</div>
+
+<!-- Gas Prices Section -->
+<div class="card">
+	<div class="card-header bg-success text-white">
+		<h4>Gas Prices Management</h4>
+	</div>
+	<div class="card-body">
+		<form method="POST">
+			<div class="row">
+				<?php foreach ($gas_prices as $gas_type => $price): ?>
+				<div class="col-md-4 mb-4">
+					<div class="card">
+						<div class="card-header">
+							<h5><?= $gas_type ?> Prices</h5>
+						</div>
+						<div class="card-body">
+							<div class="mb-3">
+								<label class="form-label">Cost Price ($)</label>
+								<input type="number" step="0.01" class="form-control"
+									   name="prices[<?= $gas_type ?>][cost]"
+									   value="<?= $price['cost_price'] ?>" required>
+							</div>
+							<div class="mb-3">
+								<label class="form-label">Selling Price ($)</label>
+								<input type="number" step="0.01" class="form-control"
+									   name="prices[<?= $gas_type ?>][selling]"
+									   value="<?= $price['selling_price'] ?>" required>
+							</div>
+						</div>
+					</div>
+				</div>
+				<?php endforeach; ?>
+			</div>
+			<button type="submit" name="update_prices" class="btn btn-success">
+				Update Prices
+			</button>
+		</form>
+	</div>
+</div>
 		</section>
 	</div>
 
 </main>
-
+<br>
 
 
 <?php include_once '../../includes/footer.php'; ?>

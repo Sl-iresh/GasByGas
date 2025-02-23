@@ -1,6 +1,6 @@
 <?php
 require_once '../models/Crud.php'; // Adjust this path if necessary
-session_start();
+
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = isset($_POST['email']) ? htmlspecialchars(trim($_POST['email'])) : '';
@@ -15,23 +15,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $crud = new Crud();
 
     // Check if user exists in the database
-    $query = "SELECT * FROM customer WHERE email = ?";
+    $query = "SELECT * FROM users WHERE email = ?";
     $user = $crud->selectOne($query, [$email]);
 
     if ($user) {
         // Verify password
         if (password_verify($password, $user['password'])) {
             // Set session variables
-            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['user_id'] = $user['user_id'];
             $_SESSION['user_name'] = $user['name'];
-            $_SESSION['user_type'] = $user['customer_type'];
-
+            $_SESSION['role'] = $user['role'];
+            $_SESSION['user'] = $user;
             // Redirect based on user type
-            if ($user['customer_type'] === 'individual') {
-                header('Location: ../admin/dashboard.php');
-            } elseif ($user['customer_type'] === 'business') {
-                header('Location: ../user/dashboard.php');
+            if ($user['role'] === 'individual') {
+                header('Location: ../views/user/dashboard.php');
+            } elseif ($user['role'] === 'business') {
+                header('Location: ../views/user/business_dashboard.php');
+            } elseif ($user['role'] === 'admin') {
+                header('Location: ../views/admin/dashboard.php');
+            } elseif ($user['role'] === 'manager') {
+                header('Location: ../views/manager/dashboard.php');
             }
+
+
             exit;
         } else {
             $_SESSION["login_error"] = "Invalid email or password.";
@@ -40,9 +46,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } else {
         $_SESSION["login_error"] = "User not found.";
-        
+
         header('Location: ../public/login.php');
         exit;
     }
 }
-?>

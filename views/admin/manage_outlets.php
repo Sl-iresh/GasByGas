@@ -82,9 +82,9 @@ include_once '../../includes/header.php';
 		overflow: hidden;
 	}
 
-	table thead tr th  {
+	table thead tr th {
 		background-color: #007bff !important;
-		color: white  !important;
+		color: white !important;
 	}
 
 	table th,

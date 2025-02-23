@@ -1,5 +1,5 @@
 <?php
-require_once  __DIR__ . '\..\config\config.php';
+require_once  __DIR__ . '\..\config\Database.php';
 ?>
 <!doctype html>
 <html lang="en">
@@ -18,8 +18,8 @@ require_once  __DIR__ . '\..\config\config.php';
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta2/css/all.min.css">
 	<link rel="stylesheet" href="../../assets/css/mdb.min.css" />
 
-	<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
-	<title> <?php echo $title ?></title>
+	
+	<title><?php echo $title ?></title>
 </head>
 
 
@@ -29,6 +29,7 @@ require_once  __DIR__ . '\..\config\config.php';
 		height: 100%;
 		margin: 0;
 		display: flex;
+		background-color: #f5f5f5;
 		flex-direction: column;
 	}
 

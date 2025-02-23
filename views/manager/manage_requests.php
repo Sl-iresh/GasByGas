@@ -1,7 +1,7 @@
 <?php
 $title = "Dashboard | Lpgas ";
 include_once '../../includes/header.php';
-
+require_once '../../controllers/SMSApi.php';
 $db = new Database();
 $conn = $db->connect();
 
@@ -51,9 +51,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_empty_return'])
 
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['reschedule_request'])) {
-
     $request_id = $_POST['request_id'];
-    $new_user_id = $_POST['new_user_id']; // The new user ID selected in the modal
+    $new_user_id = $_POST['new_user_id'];
 
     // Fetch the current request details
     $stmt = $conn->prepare("SELECT * FROM gas_requests WHERE id = :id");
@@ -61,25 +60,61 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['reschedule_request']))
     $stmt->execute();
     $request = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // Update request with old and new user IDs
-    $update_query = "UPDATE gas_requests SET old_user_id = :old_user_id, new_user_id = :new_user_id, user_id  = :user_id  WHERE id = :id";
-    $stmt = $conn->prepare($update_query);
-    $stmt->bindParam(':old_user_id', $request['user_id'], PDO::PARAM_INT);
-    $stmt->bindParam(':new_user_id', $new_user_id, PDO::PARAM_INT);
-    $stmt->bindParam(':user_id', $new_user_id, PDO::PARAM_INT);
-    $stmt->bindParam(':id', $request_id, PDO::PARAM_INT);
+    if ($request) {
+        $old_user_id = $request['user_id'];
 
-    if ($stmt->execute()) {
-        // Handle stock update (if necessary)
-        // You can use the same logic for updating stock if needed, as per your initial code.
+        // Fetch phone numbers of old and new users
+        $stmt = $conn->prepare("SELECT user_id, contact_number FROM users WHERE user_id IN (:old_user_id, :new_user_id)");
+        $stmt->bindParam(':old_user_id', $old_user_id, PDO::PARAM_INT);
+        $stmt->bindParam(':new_user_id', $new_user_id, PDO::PARAM_INT);
+        $stmt->execute();
+        $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Redirect to the same page to refresh the request list
-        header('Location: ' . $_SERVER['PHP_SELF']);
-        exit;
+
+      
+        $phones = [];
+        foreach ($users as $user) {
+            $phones[$user['user_id']] = $user['contact_number'];
+           
+        }
+
+        // Send SMS to old user
+        if (isset($phones[$old_user_id])) {
+            $old_message = "Your gas request has been rescheduled and assigned to another user.";
+   
+            $smsApi = new SMSApi();
+            $smsResponse = $smsApi->sendSMS([$phones[$old_user_id]], $old_message);
+         
+          
+        }
+
+        // Send SMS to new user
+        if (isset($phones[$new_user_id])) {
+            $new_message = "A new gas request has been assigned to you. Please check the system for details.";
+
+            $smsApi = new SMSApi();
+            $smsResponse = $smsApi->sendSMS([$phones[$new_user_id]], $new_message);
+        }
+
+        // Update request with old and new user IDs
+        $update_query = "UPDATE gas_requests SET old_user_id = :old_user_id, new_user_id = :new_user_id, user_id = :new_user_id WHERE id = :id";
+        $stmt = $conn->prepare($update_query);
+        $stmt->bindParam(':old_user_id', $old_user_id, PDO::PARAM_INT);
+        $stmt->bindParam(':new_user_id', $new_user_id, PDO::PARAM_INT);
+        $stmt->bindParam(':id', $request_id, PDO::PARAM_INT);
+
+        if ($stmt->execute()) {
+            // Redirect to refresh the request list
+            header('Location: ' . $_SERVER['PHP_SELF']);
+            exit;
+        } else {
+            $error = "Error rescheduling the request.";
+        }
     } else {
-        $error = "Error rescheduling the request.";
+        $error = "Request not found.";
     }
 }
+
 
 
 $query = "
@@ -107,27 +142,74 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_status'])) {
     $stmt->execute();
     $request = $stmt->fetch(PDO::FETCH_ASSOC);
 
+    if (!$request) {
+        die("Request not found.");
+    }
+
+    $outlet_id = $request['outlet_id'];
+    $gas_type = $request['gas_type'];
+    $pickup_date = $request['pickup_date'];
+    $user_id = $request['user_id'];
+
     // Fetch the current stock for the outlet
     $stmt = $conn->prepare("SELECT stock FROM gas_stock WHERE outlet_id = :outlet_id");
-    $stmt->bindParam(':outlet_id', $request['outlet_id'], PDO::PARAM_INT);
+    $stmt->bindParam(':outlet_id', $outlet_id, PDO::PARAM_INT);
     $stmt->execute();
     $outlet = $stmt->fetch(PDO::FETCH_ASSOC);
 
+    // Fetch customer phone number
+    $stmt = $conn->prepare("SELECT contact_number FROM users WHERE user_id = :user_id");
+    $stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
+    $stmt->execute();
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($user) {
+        $phone = $user['contact_number'];
+        $message = "";
+
+        // Determine SMS message based on new status
+        if ($new_status == 'scheduled') {
+            // Count total gas requests for the same outlet on the same pickup date
+            $stmt = $conn->prepare("SELECT COUNT(*) AS total_requests FROM gas_requests WHERE outlet_id = :outlet_id AND pickup_date = :pickup_date");
+            $stmt->bindParam(':outlet_id', $outlet_id, PDO::PARAM_INT);
+            $stmt->bindParam(':pickup_date', $pickup_date, PDO::PARAM_STR);
+            $stmt->execute();
+            $countData = $stmt->fetch(PDO::FETCH_ASSOC);
+            $totalRequests = $countData['total_requests'];
+
+            // Divide requests into 3 time slots
+            $slot = ceil(($totalRequests % 3) + 1); // Distributes fairly across 3 slots
+            $time_slots = ['9:00 AM - 11:00 AM', '11:30 AM - 1:30 PM', '2:00 PM - 4:00 PM'];
+            $assigned_time = $time_slots[$slot - 1];
+
+            $message = "Your gas request has been scheduled for pickup on $pickup_date between $assigned_time. and handover empty cylinders and the money Thank you!";
+        } elseif ($new_status == 'completed') {
+            $message = "Your gas request has been completed. Thank you!";
+        } elseif ($new_status == 'canceled') {
+            $message = "Your gas request has been canceled.";
+        }
+
+        // Send SMS
+        if (!empty($message)) {
+            $smsApi = new SMSApi();
+            $smsApi->sendSMS([$phone], $message);
+        }
+    }
+
     if ($outlet) {
         $gas_stock = json_decode($outlet['stock'], true);
-        $gas_type = $request['gas_type']; // gas type from the current request
 
         // Handle stock update based on status change
         if ($request['status'] == 'scheduled' || $request['status'] == 'pending') {
             if ($new_status == 'canceled') {
-                // Increment stock when status is updated from 'scheduled' to 'canceled' or 'reallocated'
+                // Increment stock when status changes from 'scheduled' to 'canceled'
                 if (isset($gas_stock[$gas_type])) {
                     $gas_stock[$gas_type] += 1;
                     $updated_stock = json_encode($gas_stock);
 
-                    // Update the stock in the database
+                    // Update stock in database
                     $stmt = $conn->prepare("UPDATE gas_stock SET stock = ? WHERE outlet_id = ?");
-                    $stmt->execute([$updated_stock, $request['outlet_id']]);
+                    $stmt->execute([$updated_stock, $outlet_id]);
                 }
             }
         } elseif ($new_status == 'scheduled') {
@@ -136,9 +218,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_status'])) {
                 $gas_stock[$gas_type] -= 1;
                 $updated_stock = json_encode($gas_stock);
 
-                // Update the stock in the database
+                // Update stock in database
                 $stmt = $conn->prepare("UPDATE gas_stock SET stock = ? WHERE outlet_id = ?");
-                $stmt->execute([$updated_stock, $request['outlet_id']]);
+                $stmt->execute([$updated_stock, $outlet_id]);
             }
         }
     }
@@ -156,14 +238,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_status'])) {
     }
 
     // Refresh requests after update
-    $stmt = $conn->prepare($query);
-    $stmt->bindParam(':manager_id', $manager_id, PDO::PARAM_INT);
-    $stmt->execute();
-    $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
     header('Location: ' . $_SERVER['PHP_SELF']);
     exit;
 }
+
 
 
 
