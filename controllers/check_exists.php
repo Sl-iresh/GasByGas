@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['field']) && isset($_P
     if (in_array($field, $allowedFields)) {
         try {
             // Prepare the query to check if the field exists
-            $query = "SELECT COUNT(*) FROM customer WHERE $field = :value";
+            $query = "SELECT COUNT(*) FROM users WHERE $field = :value";
             $stmt = $conn->prepare($query);
             $stmt->bindParam(':value', $value, PDO::PARAM_STR);
             $stmt->execute();

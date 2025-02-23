@@ -12,18 +12,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	$email = isset($_POST['email']) ? htmlspecialchars(trim($_POST['email'])) : '';
 	$Address = isset($_POST['Address']) ? htmlspecialchars(trim($_POST['Address'])) : '';
 	$contact_number = isset($_POST['contact_number']) ? htmlspecialchars(trim($_POST['contact_number'])) : '';
-	$customer_type = isset($_POST['customer_type']) ? htmlspecialchars(trim($_POST['customer_type'])) : '';
+	$role = isset($_POST['role']) ? htmlspecialchars(trim($_POST['role'])) : '';
 	$nic_or_registration_number = isset($_POST['nic_or_registration_number']) ? htmlspecialchars(trim($_POST['nic_or_registration_number'])) : '';
 
-	//$Password = isset($_POST['password']) ? htmlspecialchars(trim($_POST['password'])) : '';
+
     // Hash the password before storing it
     $Password = isset($_POST['password']) ? password_hash(trim($_POST['password']), PASSWORD_BCRYPT) : '';
 
 	$crud = new Crud();
 
-	$table = 'customer';
-	$columns = ['name', 'address','email','nic_or_registration_number','customer_type','contact_number','password'];
-	$values = [$name,$Address,$email,$nic_or_registration_number,$customer_type,$contact_number,$Password];
+	$table = 'users';
+	$columns = ['name', 'address','email','nic_or_registration_number','role','contact_number','password'];
+	$values = [$name,$Address,$email,$nic_or_registration_number,$role,$contact_number,$Password];
 
 	$insertId = $crud->insert($table, $columns, $values);
 	if (is_numeric($insertId)) {
@@ -37,8 +37,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
 
-//"Duplicate entry 'admin@gmail.com' for key 'email'"
-
+  
+	//$Password = isset($_POST['password']) ? htmlspecialchars(trim($_POST['password'])) : '';
 
 	
 }
